@@ -31,10 +31,7 @@ public class MineView extends View {
         textPaint.setColor(Color.WHITE);
         textPaint.setFakeBoldText(true);
 
-        try {
-            minerBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.miner);
-        } catch (Exception e) {}
-
+        // تم إزالة تحميل صورة العامل مؤقتاً لأنها غير موجودة
         try {
             bgBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.bg);
         } catch (Exception e) {}
@@ -82,19 +79,14 @@ public class MineView extends View {
     }
 
     private void drawMiner(Canvas canvas, float x, float y, boolean isActive) {
+        // رسم دائرة كاحتياط حتى نضع صورة العامل
         float offset = (float) Math.sin(animationOffset) * 10f;
         if (!game.managers.get(mineIndex)) offset = 0;
-
-        if (minerBitmap != null) {
-            int width = 150;
-            int height = 150;
-            Rect destRect = new Rect((int)(x - width/2 + offset), (int)(y - height/2), 
-                                     (int)(x + width/2 + offset), (int)(y + height/2));
-            canvas.drawBitmap(minerBitmap, null, destRect, paint);
-        } else {
-            paint.setColor(isActive ? Color.parseColor("#FFD700") : Color.GRAY);
-            canvas.drawCircle(x + offset, y, 60, paint);
-        }
+        
+        paint.setColor(isActive ? Color.parseColor("#FFD700") : Color.GRAY);
+        canvas.drawRoundRect(x - 50 + offset, y - 40, x + 50 + offset, y + 70, 20, 20, paint);
+        paint.setColor(Color.parseColor("#FFCC80"));
+        canvas.drawCircle(x + offset, y - 90, 45, paint);
     }
 
     private void drawUpgradeButton(Canvas canvas, float x, float y, Miner m) {
