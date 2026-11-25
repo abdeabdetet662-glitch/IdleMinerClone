@@ -12,6 +12,7 @@ public class GameManager {
 
     public double gold = 0;
     public List<Mine> mines = new ArrayList<>();
+    public List<Boolean> managers = new ArrayList<>(); // هل تم شراء المدير لكل منجم؟
     public long lastSavedTime;
 
     private GameManager(Context context) {
@@ -29,6 +30,10 @@ public class GameManager {
         mines.add(new Mine(0, "منجم الفحم", "فحم", 0));
         mines.add(new Mine(1, "منجم الذهب", "ذهب", 5000));
         mines.add(new Mine(2, "منجم الألماس", "ألماس", 100000));
+        
+        managers.add(false);
+        managers.add(false);
+        managers.add(false);
     }
 
     public void calculateOfflineIncome() {
@@ -36,8 +41,10 @@ public class GameManager {
         long timeDiff = currentTime - lastSavedTime;
         if (timeDiff > 0) {
             double seconds = timeDiff / 1000.0;
-            for (Mine m : mines) {
-                if (m.isUnlocked) {
+            for (int i = 0; i < mines.size(); i++) {
+                Mine m = mines.get(i);
+                // إذا كان المنجم مفتوحاً، وتم شراء المدير، يحسب الإنتاج
+                if (m.isUnlocked && managers.get(i)) {
                     gold += m.getTotalIncome() * seconds;
                 }
             }
@@ -74,6 +81,16 @@ public class GameManager {
         return false;
     }
 
+    public boolean buyManager(int mineIndex, long cost) {
+        if (!managers.get(mineIndex) && gold >= cost) {
+            gold -= cost;
+            managers.set(mineIndex, true);
+            saveGame();
+            return true;
+        }
+        return false;
+    }
+
     public String formatNumber(double number) {
         if (number < 1000) return String.format(Locale.US, "%.1f", number);
         int exp = (int) (Math.log(number) / Math.log(1000));
@@ -88,10 +105,13 @@ public class GameManager {
         for (int i = 0; i < mines.size(); i++) {
             Mine m = mines.get(i);
             editor.putBoolean("unlocked_" + i, m.isUnlocked);
+            editor.putBoolean("manager_" + i, managers.get(i));
             for (int j = 0; j < m.miners.size(); j++) {
                 Miner worker = m.miners.get(j);
                 editor.putInt("lvl_" + i + "_" + j, worker.level);
                 editor.putLong("cost_" + i + "_" + j, worker.currentCost);
+                // حفظ الإنتاج بعد المضاعفة
+                editor.putFloat("inc_" + i + "_" + j, (float) worker.baseIncome); 
             }
         }
         editor.apply();
@@ -103,10 +123,12 @@ public class GameManager {
         for (int i = 0; i < mines.size(); i++) {
             Mine m = mines.get(i);
             m.isUnlocked = prefs.getBoolean("unlocked_" + i, i == 0);
+            managers.set(i, prefs.getBoolean("manager_" + i, false));
             for (int j = 0; j < m.miners.size(); j++) {
                 Miner worker = m.miners.get(j);
                 worker.level = prefs.getInt("lvl_" + i + "_" + j, 0);
                 worker.currentCost = prefs.getLong("cost_" + i + "_" + j, worker.baseCost);
+                worker.baseIncome = prefs.getFloat("inc_" + i + "_" + j, (float) worker.baseIncome);
             }
         }
         calculateOfflineIncome();

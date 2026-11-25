@@ -34,7 +34,6 @@ public class MainActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(Color.parseColor("#121212"));
 
-        // الشريط العلوي
         LinearLayout topBar = new LinearLayout(this);
         topBar.setGravity(Gravity.CENTER);
         topBar.setPadding(0, 60, 0, 30);
@@ -47,7 +46,6 @@ public class MainActivity extends Activity {
         topBar.addView(goldText);
         root.addView(topBar);
 
-        // منطقة المحتوى
         ScrollView scroll = new ScrollView(this);
         scroll.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
@@ -57,7 +55,6 @@ public class MainActivity extends Activity {
         scroll.addView(contentLayout);
         root.addView(scroll);
 
-        // شريط التنقل السفلي
         tabsLayout = new LinearLayout(this);
         tabsLayout.setOrientation(LinearLayout.HORIZONTAL);
         tabsLayout.setBackgroundColor(Color.parseColor("#1E1E1E"));
@@ -152,7 +149,33 @@ public class MainActivity extends Activity {
             return;
         }
 
-        // إضافة زر التعدين اليدوي في الأعلى
+        // زر شراء المدير (إذا لم يكن موجوداً)
+        if (!game.managers.get(mineIndex)) {
+            Button managerBtn = new Button(this);
+            managerBtn.setText("توظيف مدير (يعمل تلقائياً) - 1000 💰");
+            managerBtn.setTextColor(Color.WHITE);
+            GradientDrawable mBg = new GradientDrawable();
+            mBg.setColor(Color.parseColor("#E91E63"));
+            mBg.setCornerRadius(25);
+            managerBtn.setBackground(mBg);
+            
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            params.setMargins(40, 20, 40, 20);
+            managerBtn.setLayoutParams(params);
+            
+            managerBtn.setOnClickListener(v -> {
+                if (game.buyManager(mineIndex, 1000)) {
+                    loadMineContent(mineIndex);
+                    Toast.makeText(this, "تم توظيف المدير! العمال يعملون الآن تلقائياً.", Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(this, "تحتاج 1000 ذهبة لتوظيف المدير!", Toast.LENGTH_SHORT).show();
+                }
+            });
+            contentLayout.addView(managerBtn);
+        }
+
+        // زر التعدين اليدوي
         Button tapBtn = new Button(this);
         tapBtn.setText("تعدين يدوي 🪨");
         tapBtn.setTextColor(Color.BLACK);
@@ -173,10 +196,10 @@ public class MainActivity extends Activity {
         });
         contentLayout.addView(tapBtn);
 
-        // إضافة الواجهة الرسومية للعمال
+        // الواجهة الرسومية للعمال
         MineView mineView = new MineView(this, mine, mineIndex);
         LinearLayout.LayoutParams viewParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, (int) (getResources().getDisplayMetrics().density * 1500));
+                LinearLayout.LayoutParams.MATCH_PARENT, (int) (getResources().getDisplayMetrics().density * 1800));
         mineView.setLayoutParams(viewParams);
         contentLayout.addView(mineView);
     }
@@ -189,12 +212,16 @@ public class MainActivity extends Activity {
         loop = new Runnable() {
             @Override
             public void run() {
-                for (Mine m : game.mines) {
-                    if (m.isUnlocked) {
+                boolean needsRedraw = false;
+                for (int i = 0; i < game.mines.size(); i++) {
+                    Mine m = game.mines.get(i);
+                    // إذا كان المنجم مفتوحاً وتم تعيين مدير، ينتج تلقائياً
+                    if (m.isUnlocked && game.managers.get(i)) {
                         game.gold += m.getTotalIncome() / 10.0;
+                        needsRedraw = true;
                     }
                 }
-                updateGoldUI();
+                if (needsRedraw) updateGoldUI();
                 handler.postDelayed(this, 100);
             }
         };
